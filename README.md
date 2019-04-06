@@ -33,3 +33,26 @@ The following variables must be set in the concourse credhub that was deployed e
 - /concourse/dev/state_bucket_key - `gcp service account key that can talk to the state bucket`
 - /concourse/dev/opsman_service_account_json - `terraform output opsman_service_account_key`
 
+### Required Config Changes
+
+- **All** the files under `/environments` require changes that will be specific to your deployment. Change these before flying the pipelines and commit and push them to git.
+
+- The pipeline itself should be usable without any changes.
+
+### Concourse Setup
+
+From the **control-plane** folder, where you deployed Concourse, login to Concourse using the **main** team. The URL will be https://concourse.dns_name_in_terraform/ or simply as follows:
+
+`fly login -t main -c https://$(terraform output concourse_dns) -k -u admin -p $(terraform output concourse_password) -n main`
+
+After authenticating into Concourse, Create a team in concourse for dev.
+
+`fly set-team -t main -n dev --local-user=admin`
+
+Login to the new team:
+
+`fly login -t dev -c https://$(terraform output concourse_dns) -k -u admin -p $(terraform output concourse_password) -n dev`
+
+Fly the pipeline(s)
+
+`fly set-pipeline -t dev -c gcp-pas-pipeline.yml -p install-pcf -l environments/dev/pipeline-params.yml`
