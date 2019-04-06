@@ -1,0 +1,15 @@
+opsman-configuration:
+  gcp:
+    gcp_service_account: ((opsman_service_account_json))
+    project: ((project_id))
+    region: ((region))
+    zone: ((zone))
+    vm_name: ops-manager-vm-((region))
+    # For SharedVPC: projects/[HOST_PROJECT_ID]/regions/[REGION]/subnetworks/[SUBNET]
+    vpc_subnet: ((infra_subnet))
+    tags: ((opsman_vm_tag))
+    custom_cpu: 2                         # default:  8
+    custom_memory: 8                      # default: 16
+    boot_disk_size: 150                   # default: 400
+    public_ip: ((public_ip))
+    private_ip: ((private_ip))

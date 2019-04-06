@@ -1,0 +1,83 @@
+iaas-configuration:
+  project: ((gcp_project))
+  auth_json: ((opsman_service_account_json))
+  default_deployment_tag: ((deployment_tag))
+director-configuration:
+  ntp_servers_string: ((ntp_servers))
+  metrics_ip:
+  resurrector_enabled: true
+  director_hostname:
+  max_threads:
+  custom_ssh_banner:
+  disable_dns_release: false
+  opentsdb_ip:
+  director_worker_count: 5
+  post_deploy_enabled: false
+  bosh_recreate_on_next_deploy: false
+  retry_bosh_deploys: false
+  keep_unreachable_vms: false
+  database_type: internal
+  blobstore_type: local
+  hm_pager_duty_options:
+    enabled: false
+  hm_emailer_options:
+    enabled: false
+  dns-configuration:
+    excluded_recursors: ((excluded_recursors))
+security-configuration:
+  trusted_certificates:
+  generate_vm_passwords: true
+syslog-configuration:
+  enabled: false
+az-configuration:
+- name: ((az1))
+- name: ((az2))
+- name: ((az3))
+networks-configuration:
+  icmp_checks_enabled: false
+  networks:
+  - name: infra
+    subnets:
+    - iaas_identifier: ((gcp_infra_network))
+      cidr: ((gcp_infra_network_cidr))
+      reserved_ip_ranges: ((gcp_infra_network_reserverd_ip_ranges))
+      gateway: ((gcp_infra_network_gateway))
+      dns: ((gcp_dns))
+      availability_zone_names: &1
+      - ((az1))
+      - ((az2))
+      - ((az3))
+  - name: pas
+    subnets:
+    - iaas_identifier: ((gcp_pas_network))
+      cidr: ((gcp_pas_network_cidr))
+      reserved_ip_ranges: ((gcp_pas_network_reserverd_ip_ranges))
+      gateway: ((gcp_pas_network_gateway))
+      dns: ((gcp_dns))
+      availability_zone_names: *1
+  - name: services
+    subnets:
+    - iaas_identifier: ((gcp_services_network))
+      cidr: ((gcp_services_network_cidr))
+      reserved_ip_ranges: ((gcp_services_network_reserverd_ip_ranges))
+      gateway: ((gcp_services_network_gateway))
+      dns: ((gcp_dns))
+      availability_zone_names: *1
+network-assignment:
+  singleton_availability_zone:
+    name: ((az1))
+  network:
+    name: infra
+resource-configuration:
+  compilation:
+    instances: automatic
+    instance_type:
+      id: automatic
+    internet_connected: true
+  director:
+    instances: automatic
+    persistent_disk:
+      size_mb: automatic
+    instance_type:
+      id: automatic
+    internet_connected: true
