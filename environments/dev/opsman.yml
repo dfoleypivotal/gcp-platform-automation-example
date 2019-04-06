@@ -2,6 +2,6 @@ project_id: fe-dfoley
 region: us-west1
 zone: us-west1-b
 infra_subnet: dev-infrastructure-subnet
-public_ip: 35.197.28.115     # terraform output ops_manager_public_ip
+public_ip: 35.185.208.239     # terraform output ops_manager_public_ip
 private_ip: 10.0.0.2
 opsman_vm_tag: dev-ops-manager-external   # must match what terraform uses for firewall purposes
