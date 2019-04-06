@@ -1,0 +1,5 @@
+opsman/enable/url: https://pcf.dev.gcp.dfoleypivotal.com/
+singleton_availability_zone: us-west1-a
+az2_name: us-west1-b
+az3_name: us-west1-c
+healthwatch-forwarder/health_check_az: us-west1-c

@@ -1,0 +1,35 @@
+singleton_availability_zone: us-west1-b
+az2_name: us-west1-a
+az3_name: us-west1-c
+cloud_controller/system_domain: sys.dev.gcp.dfoleypivotal.com
+cloud_controller/apps_domain: apps.dev.gcp.dfoleypivotal.com
+
+router_elb_names:
+  - tcp:dev-cf-ws
+  - http:dev-httpslb
+
+system_database/external/host: &db_host 35.197.65.69        # from terraform (terraform output sql_db_ip)
+system_database/external/port: &db_port 3306
+db_username: &db_username pRbYphyAMWM                       # from terraform (terraform output pas_sql_username)
+system_database/external/account_username: *db_username
+system_database/external/app_usage_service_username: *db_username
+system_database/external/autoscale_username: *db_username
+system_database/external/ccdb_username: *db_username
+system_database/external/diego_username: *db_username
+system_database/external/locket_username: *db_username
+system_database/external/networkpolicyserver_username: *db_username
+system_database/external/nfsvolume_username: *db_username
+system_database/external/notifications_username: *db_username
+system_database/external/routing_username: *db_username
+system_database/external/silk_username: *db_username
+
+uaa_database/external/host: *db_host
+uaa_database/external/port: *db_port
+uaa_database/external/uaa_username: *db_username
+
+system_blobstore/external_gcs_service_account/buildpacks_bucket: fe-dfoley-dev-buildpacks
+system_blobstore/external_gcs_service_account/droplets_bucket: fe-dfoley-dev-droplets
+system_blobstore/external_gcs_service_account/packages_bucket: fe-dfoley-dev-packages
+system_blobstore/external_gcs_service_account/resources_bucket: fe-dfoley-dev-resources
+system_blobstore/external_gcs_service_account/project_id: fe-dfoley
+system_blobstore/external_gcs_service_account/service_account_email: control-plane@fe-dfoley.iam.gserviceaccount.com

@@ -1,0 +1,6 @@
+version: 2.4.1
+product: elastic-runtime
+file_pattern: cf-*.pivotal
+stemcell_version: "170.14"
+stemcell_product: stemcells-ubuntu-xenial
+stemcell_file_pattern: "light-bosh-stemcell-*-google-kvm-ubuntu-xenial-go_agent.tgz"

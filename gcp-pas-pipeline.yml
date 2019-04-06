@@ -1,0 +1,337 @@
+resource_types:
+- name: file-downloader
+  type: docker-image
+  source:
+    repository: pivotalservices/file-downloader-resource
+
+- name: gcs-resource
+  type: docker-image
+  source:
+    repository: frodenas/gcs-resource
+
+resources:
+- name: pivnet-files
+  type: file-downloader
+  source:
+    config_provider: git
+    version_root: {{version_root}}
+    uri: {{git_repo}}
+    private_key: ((git_private_key.private_key))
+    branch: master
+    file_provider: pivnet
+    pivnet_token: ((pivnet_token))
+
+- name: platform-automation-config
+  type: git
+  source:
+    uri: {{git_repo}}
+    private_key: ((git_private_key.private_key))
+
+- name: state
+  type: gcs-resource
+  source:
+    bucket: ((state_bucket))
+    json_key: ((state_bucket_key))
+    versioned_file: state.yml
+
+- name: pipeline-utilities
+  type: git
+  source:
+    uri: https://github.com/pivotalservices/pipeline-utilities.git
+
+- name: tile-config-generator
+  type: git
+  source:
+    uri: https://github.com/pivotalservices/tile-config-generator.git
+
+jobs:
+- name: deploy-opsman
+  serial: true
+  plan:
+  - aggregate:
+    - get: platform-automation-image
+      resource: pivnet-files
+      params:
+        product: platform-automation-image
+        unpack: true
+    - get: platform-automation-tasks
+      resource: pivnet-files
+      params:
+        product: platform-automation-tasks
+        unpack: true
+    - get: pipeline-utilities
+    - get: platform-automation-config
+    - get: state
+    - get: image
+      resource: pivnet-files
+      params:
+        product: opsman
+
+  - aggregate:
+    - task: create-auth-file
+      file: pipeline-utilities/tasks/create-auth-file.yml
+      params:
+        OPSMAN_USERNAME: {{opsman_username}}
+        OPSMAN_PASSWORD: ((opsman_password))
+        OPSMAN_DECRYPTION_PASSPHRASE: ((opsman_decryption_passphrase))
+        OUTPUT_FILE_NAME: auth.yml
+
+    - task: create-env-file
+      file: pipeline-utilities/tasks/create-env-file.yml
+      params:
+        OPSMAN_TARGET: {{opsman_target}}
+        OPSMAN_CONNECT_TIMEOUT: {{opsman_connect_timeout}}
+        OPSMAN_REQUEST_TIMEOUT: {{opsman_request_timeout}}
+        OPSMAN_SKIP_SSL_VALIDATION: true
+        OPSMAN_USERNAME: {{opsman_username}}
+        OPSMAN_PASSWORD: ((opsman_password))
+        OPSMAN_DECRYPTION_PASSPHRASE: ((opsman_decryption_passphrase))
+
+    - task: create-opsman-secrets
+      file: pipeline-utilities/tasks/create-product-secrets.yml
+      params:
+        PRODUCT_opsman_service_account_json: ((opsman_service_account_json))
+
+  - task: create-opsman-vm
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/create-vm.yml
+    input_mapping:
+      config: platform-automation-config
+      vars: platform-automation-config
+    params:
+      VARS_FILES: {{opsman_vars_files}}
+      OPSMAN_CONFIG_FILE: templates/opsman.yml
+    ensure:
+      put: state
+      params: { file: generated-state/state.yml }
+
+  - task: configure-authentication
+    image: platform-automation-image  
+    attempts: 20
+    file: platform-automation-tasks/tasks/configure-authentication.yml
+    params:
+       ENV_FILE: env.yml
+       AUTH_CONFIG_FILE: auth.yml
+
+  - task: configure-director
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/configure-director.yml
+    input_mapping:
+      config: platform-automation-config
+      vars: platform-automation-config
+    params:
+      VARS_FILES: {{director_vars_files}}
+      DIRECTOR_CONFIG_FILE: templates/director.yml
+
+  - task: apply-director-changes
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/apply-director-changes.yml
+
+- name: configure-pas
+  serial: true
+  plan:
+  - aggregate:
+    - get: platform-automation-config
+    - get: pipeline-utilities
+      passed: [deploy-opsman]
+      trigger: true
+    - get: tile-config-generator
+    - get: platform-automation-image
+      resource: pivnet-files
+      params:
+        product: platform-automation-image
+        unpack: true
+    - get: platform-automation-tasks
+      resource: pivnet-files
+      params:
+        product: platform-automation-tasks
+        unpack: true
+    - get: cf
+      resource: pivnet-files
+      params:
+        product: cf
+    - get: cf-stemcell
+      resource: pivnet-files
+      params:
+        product: cf
+        stemcell: true
+
+  - aggregate:
+    - task: create-product-secrets
+      file: pipeline-utilities/tasks/create-product-secrets.yml
+      params:
+        PRODUCT_networking_poe_ssl_certs_0/certificate: ((uaa_pem.certificate))
+        PRODUCT_networking_poe_ssl_certs_0/privatekey: ((uaa_pem.private_key))
+        PRODUCT_uaa/service_provider_key_credentials/certificate: ((uaa_pem.certificate))
+        PRODUCT_uaa/service_provider_key_credentials/privatekey: ((uaa_pem.private_key))
+        PRODUCT_credhub_key_encryption_passwords_0/key: ((credhub_key_encryption_password))
+        PRODUCT_credhub_key_encryption_passwords_0/name: encryption_key
+        PRODUCT_system_database/external/account_password: ((db_password))
+        PRODUCT_system_database/external/app_usage_service_password: ((db_password))
+        PRODUCT_system_database/external/autoscale_password: ((db_password))
+        PRODUCT_system_database/external/ccdb_password: ((db_password))
+        PRODUCT_system_database/external/diego_password: ((db_password))
+        PRODUCT_system_database/external/locket_password: ((db_password))
+        PRODUCT_system_database/external/networkpolicyserver_password: ((db_password))
+        PRODUCT_system_database/external/nfsvolume_password: ((db_password))
+        PRODUCT_system_database/external/notifications_password: ((db_password))
+        PRODUCT_system_database/external/routing_password: ((db_password))
+        PRODUCT_system_database/external/silk_password: ((db_password))
+        PRODUCT_uaa_database/external/uaa_password: ((db_password))
+        PRODUCT_system_blobstore/external_gcs_service_account/service_account_json_key: ((storage_account_key))
+
+    - task: create-env-file
+      file: pipeline-utilities/tasks/create-env-file.yml
+      params:
+        OPSMAN_TARGET: {{opsman_target}}
+        OPSMAN_CONNECT_TIMEOUT: {{opsman_connect_timeout}}
+        OPSMAN_REQUEST_TIMEOUT: {{opsman_request_timeout}}
+        OPSMAN_SKIP_SSL_VALIDATION: true
+        OPSMAN_USERNAME: {{opsman_username}}
+        OPSMAN_PASSWORD: ((opsman_password))
+        OPSMAN_DECRYPTION_PASSPHRASE: ((opsman_decryption_passphrase))
+
+  - aggregate:
+    - task: upload-stemcell
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/upload-stemcell.yml
+      input_mapping:
+        stemcell: cf-stemcell
+
+    - task: product-config
+      file: tile-config-generator/tasks/product-config-with-errands.yml
+      input_mapping:
+        product: cf
+      params:
+        OPS_FILES: {{pas_config_opsfile}}
+
+    - task: upload-product
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/upload-product.yml
+      input_mapping:
+        product: cf
+
+  - task: stage-product
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/stage-product.yml
+    input_mapping:
+      product: cf
+
+  - task: configure-product
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/configure-product.yml
+    params:
+      CONFIG_FILE: product.yml
+      VARS_FILES: {{pas_vars_files}}
+      OPS_FILES: {{pas_config_opsfile}}
+    input_mapping:
+      vars: platform-automation-config
+
+- name: configure-healthwatch
+  serial: true
+  plan:
+  - aggregate:
+    - get: platform-automation-config
+    - get: pipeline-utilities
+      passed: [configure-pas]
+      trigger: true
+    - get: tile-config-generator
+    - get: platform-automation-image
+      resource: pivnet-files
+      params:
+        product: platform-automation-image
+        unpack: true
+    - get: platform-automation-tasks
+      resource: pivnet-files
+      params:
+        product: platform-automation-tasks
+        unpack: true
+    - get: healthwatch
+      resource: pivnet-files
+      params:
+        product: p-healthwatch
+    - get: healthwatch-stemcell
+      resource: pivnet-files
+      params:
+        product: p-healthwatch
+        stemcell: true
+
+  - task: create-env-file
+    file: pipeline-utilities/tasks/create-env-file.yml
+    params:
+      OPSMAN_TARGET: {{opsman_target}}
+      OPSMAN_CONNECT_TIMEOUT: {{opsman_connect_timeout}}
+      OPSMAN_REQUEST_TIMEOUT: {{opsman_request_timeout}}
+      OPSMAN_SKIP_SSL_VALIDATION: true
+      OPSMAN_USERNAME: {{opsman_username}}
+      OPSMAN_PASSWORD: ((opsman_password))
+      OPSMAN_DECRYPTION_PASSPHRASE: ((opsman_decryption_passphrase))
+
+  - aggregate:
+    - task: upload-stemcell
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/upload-stemcell.yml
+      input_mapping:
+        env: env
+        stemcell: healthwatch-stemcell
+
+    - task: product-config
+      file: tile-config-generator/tasks/product-config-with-errands.yml
+      input_mapping:
+        product: healthwatch
+
+    - task: upload-product
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/upload-product.yml
+      input_mapping:
+        product: healthwatch
+
+  - task: stage-product
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/stage-product.yml
+    input_mapping:
+      product: healthwatch
+
+  - task: configure-product
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/configure-product.yml
+    params:
+      CONFIG_FILE: product.yml
+      VARS_FILES: {{healthwatch_vars_files}}
+      OPS_FILES: {{healthwatch_config_opsfile}}
+    input_mapping:
+      vars: platform-automation-config
+
+- name: apply-changes
+  serial: true
+  plan:
+  - aggregate:
+    - get: platform-automation-config
+    - get: pipeline-utilities
+      passed: [configure-healthwatch]
+      trigger: true
+    - get: platform-automation-image
+      resource: pivnet-files
+      params:
+        product: platform-automation-image
+        unpack: true
+    - get: platform-automation-tasks
+      resource: pivnet-files
+      params:
+        product: platform-automation-tasks
+        unpack: true
+
+  - task: create-env-file
+    file: pipeline-utilities/tasks/create-env-file.yml
+    params:
+      OPSMAN_TARGET: {{opsman_target}}
+      OPSMAN_CONNECT_TIMEOUT: {{opsman_connect_timeout}}
+      OPSMAN_REQUEST_TIMEOUT: {{opsman_request_timeout}}
+      OPSMAN_SKIP_SSL_VALIDATION: true
+      OPSMAN_USERNAME: {{opsman_username}}
+      OPSMAN_PASSWORD: ((opsman_password))
+      OPSMAN_DECRYPTION_PASSPHRASE: ((opsman_decryption_passphrase))
+
+  - task: apply-changes
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/apply-changes.yml

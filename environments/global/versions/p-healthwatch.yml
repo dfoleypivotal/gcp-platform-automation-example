@@ -1,0 +1,6 @@
+version: 1.4.4
+product: p-healthwatch
+file_pattern: "*.pivotal"
+stemcell_version: "97.34"
+stemcell_product: stemcells-ubuntu-xenial
+stemcell_file_pattern: "light-bosh-stemcell-*-google-kvm-ubuntu-xenial-go_agent.tgz"

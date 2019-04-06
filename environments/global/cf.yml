@@ -1,0 +1,27 @@
+network_name: pas
+
+mysql_monitor/recipient_email: dfoley@pivotal.io
+credhub_key_encryption_passwords_0/primary: true
+credhub_key_encryption_passwords_0/name: primary credhub secret
+networking_poe_ssl_certs_0/name: wildcard
+ha_proxy/skip_cert_verify: true
+security_acknowledgement: X
+diego_cell_instances: 4
+
+# disable credhub until PAS 2.5
+credhub_instances: 0
+
+# disable internal MySQL
+mysql_instances: 0
+mysql_proxy_instances: 0
+mysql_monitor_instances: 0
+backup_restore_instances: 0
+
+# disable haproxy
+ha_proxy_instances: 0
+
+# disable TCP proxy
+tcp_router_instances: 0
+
+# disable the NFS server
+nfs_server_instances: 0

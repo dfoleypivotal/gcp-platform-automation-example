@@ -1,0 +1,12 @@
+network_name: pas
+service_network_name: services
+healthwatch-forwarder/health_check_vm_type: medium.disk
+
+# shrink these from default since this is just for a demo
+healthwatch-forwarder_instance_type: medium.disk
+mysql_instance_type: large.cpu
+redis_instance_type: medium.disk
+
+healthwatch-forwarder_internet_connected: true
+mysql_internet_connected: false
+redis_internet_connected: false

@@ -1,0 +1,3 @@
+version: 1.0.1-beta.1
+product: platform-automation
+file_pattern: platform-automation-image-*.tgz
