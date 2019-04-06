@@ -1,34 +1,35 @@
-iaas-configuration:
-  project: ((gcp_project))
-  auth_json: ((opsman_service_account_json))
-  default_deployment_tag: ((deployment_tag))
-director-configuration:
-  ntp_servers_string: ((ntp_servers))
-  metrics_ip:
-  resurrector_enabled: true
-  director_hostname:
-  max_threads:
-  custom_ssh_banner:
-  disable_dns_release: false
-  opentsdb_ip:
-  director_worker_count: 5
-  post_deploy_enabled: false
-  bosh_recreate_on_next_deploy: false
-  retry_bosh_deploys: false
-  keep_unreachable_vms: false
-  database_type: internal
-  blobstore_type: local
-  hm_pager_duty_options:
+properties-configuration:
+  iaas_configuration:
+    project: ((gcp_project))
+    auth_json: ((opsman_service_account_json))
+    default_deployment_tag: ((deployment_tag))
+  director_configuration:
+    ntp_servers_string: ((ntp_servers))
+    metrics_ip:
+    resurrector_enabled: true
+    director_hostname:
+    max_threads:
+    custom_ssh_banner:
+    disable_dns_release: false
+    opentsdb_ip:
+    director_worker_count: 5
+    post_deploy_enabled: false
+    bosh_recreate_on_next_deploy: false
+    retry_bosh_deploys: false
+    keep_unreachable_vms: false
+    database_type: internal
+    blobstore_type: local
+    hm_pager_duty_options:
+      enabled: false
+    hm_emailer_options:
+      enabled: false
+    dns-configuration:
+      excluded_recursors: ((excluded_recursors))
+  security_configuration:
+    trusted_certificates:
+    generate_vm_passwords: true
+  syslog_configuration:
     enabled: false
-  hm_emailer_options:
-    enabled: false
-  dns-configuration:
-    excluded_recursors: ((excluded_recursors))
-security-configuration:
-  trusted_certificates:
-  generate_vm_passwords: true
-syslog-configuration:
-  enabled: false
 az-configuration:
 - name: ((az1))
 - name: ((az2))
